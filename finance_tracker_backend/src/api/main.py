@@ -6,6 +6,9 @@ from .auth import auth_router
 from .transactions import transaction_router, category_router, budget_router
 from .dashboard import dashboard_router, analytics_router
 
+# Ensure DB tables exist for dev/test: create SQLite schema if missing
+from .db import Base, engine
+
 openapi_tags = [
     {"name": "Authentication", "description": "User registration, login, and authentication."},
     {"name": "Transactions", "description": "Transaction CRUD and listing."},
@@ -29,6 +32,14 @@ app = FastAPI(
     openapi_tags=openapi_tags,
     swagger_ui_parameters={"persistAuthorization": True}
 )
+
+@app.on_event("startup")
+def create_db_and_tables():
+    """
+    Ensures all SQLAlchemy tables exist in dev/test (SQLite): runs on app startup.
+    In prod, migrations should be used instead.
+    """
+    Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,

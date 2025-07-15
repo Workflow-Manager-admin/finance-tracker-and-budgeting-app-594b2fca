@@ -22,7 +22,7 @@ import random
 import string
 
 # Import the FastAPI app from the main module
-from src.api.main import app
+from api.main import app
 
 client = TestClient(app)
 

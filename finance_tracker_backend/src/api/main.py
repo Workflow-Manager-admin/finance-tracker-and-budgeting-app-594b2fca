@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -11,19 +12,27 @@ openapi_tags = [
     {"name": "Categories", "description": "Spending/income categories."},
     {"name": "Budgets", "description": "Budget creation and management."},
     {"name": "Dashboard", "description": "Recent transactions and summary endpoints."},
-    {"name": "Analytics", "description": "Category and budget analytics/statistics."}
+    {"name": "Analytics", "description": "Category and budget analytics/statistics."},
+    {"name": "Health", "description": "API health/status checks."}
 ]
+
+# Get frontend CORS allowed origins from env, fallback to wildcard for dev
+CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "*")
+origins = (
+    [x.strip() for x in CORS_ALLOWED_ORIGINS.split(",")] if CORS_ALLOWED_ORIGINS != "*" else ["*"]
+)
 
 app = FastAPI(
     title="Finance Tracker API",
-    description="Backend for mobile personal finance tracker/budgeting app.",
+    description="Backend API for mobile personal finance tracker and budgeting app. Features user authentication, secure JWT-protected endpoints, robust validation, and user data separation.",
     version="1.0.0",
-    openapi_tags=openapi_tags
+    openapi_tags=openapi_tags,
+    swagger_ui_parameters={"persistAuthorization": True}
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,5 +47,5 @@ app.include_router(analytics_router)
 
 @app.get("/", tags=["Health"])
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint. Used for liveness/readiness probes and CI checks."""
     return {"message": "Healthy"}

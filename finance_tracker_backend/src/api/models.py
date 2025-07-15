@@ -47,11 +47,11 @@ class TransactionBase(BaseModel):
     """
     Base transaction model with required fields.
     """
-    amount: float = Field(..., description="Amount of the transaction")
-    category: str = Field(..., description="Spending category")
-    type: str = Field(..., description="Transaction type: income/expense")
-    date: date = Field(..., description="Date of transaction")
-    description: Optional[str] = Field(None, description="Optional transaction description")
+    amount: float = Field(description="Amount of the transaction")
+    category: str = Field(description="Spending category")
+    type: str = Field(description="Transaction type: income/expense")
+    date: date = Field(description="Date of transaction")
+    description: Optional[str] = Field(default=None, description="Optional transaction description")
 
 # PUBLIC_INTERFACE
 class TransactionCreate(TransactionBase):

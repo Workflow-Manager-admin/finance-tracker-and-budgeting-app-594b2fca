@@ -23,7 +23,8 @@ def register(user: UserCreate, db: Session = Depends(SessionLocal)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return UserOut(id=new_user.id, email=new_user.email)
+    # Always return as Pydantic model, not ORM object
+    return UserOut.model_validate(new_user)
 
 @router.post('/auth/login', response_model=Token, tags=["Authentication"], summary="Authenticate user and get JWT")
 def login(user: UserLogin, db: Session = Depends(SessionLocal)):
@@ -32,18 +33,18 @@ def login(user: UserLogin, db: Session = Depends(SessionLocal)):
     if db_user is None or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=400, detail="Invalid email or password")
     access_token = auth.create_access_token(data={"sub": str(db_user.id)})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return Token(access_token=access_token, token_type="bearer")
 
 # ---- TRANSACTION CRUD ----
 @router.post("/transactions/", response_model=TransactionOut, tags=["Transactions"], summary="Add a transaction")
 def create_transaction(transaction: TransactionCreate, db: Session = Depends(SessionLocal),
                        current_user: User = Depends(auth.get_current_user)):
     """Create a new transaction for the logged-in user."""
-    db_trx = Transaction(**transaction.dict(), user_id=current_user.id)
+    db_trx = Transaction(**transaction.model_dump(), user_id=current_user.id)
     db.add(db_trx)
     db.commit()
     db.refresh(db_trx)
-    return db_trx
+    return TransactionOut.model_validate(db_trx)
 
 @router.get("/transactions/", response_model=List[TransactionOut], tags=["Transactions"], summary="Get user transactions")
 def list_transactions(db: Session = Depends(SessionLocal),
@@ -51,7 +52,7 @@ def list_transactions(db: Session = Depends(SessionLocal),
                       skip: int = 0, limit: int = 30):
     """Get a list of all transactions for the logged-in user."""
     trxs = db.query(Transaction).filter(Transaction.user_id == current_user.id).order_by(Transaction.date.desc()).offset(skip).limit(limit).all()
-    return trxs
+    return [TransactionOut.model_validate(t) for t in trxs]
 
 @router.get("/transactions/{trx_id}", response_model=TransactionOut, tags=["Transactions"], summary="Get a transaction by ID")
 def get_transaction(trx_id: int, db: Session = Depends(SessionLocal), current_user: User = Depends(auth.get_current_user)):
@@ -59,7 +60,7 @@ def get_transaction(trx_id: int, db: Session = Depends(SessionLocal), current_us
     trx = db.query(Transaction).filter(Transaction.id == trx_id, Transaction.user_id == current_user.id).first()
     if not trx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    return trx
+    return TransactionOut.model_validate(trx)
 
 @router.put("/transactions/{trx_id}", response_model=TransactionOut, tags=["Transactions"], summary="Update a transaction")
 def update_transaction(trx_id: int, update: TransactionUpdate, db: Session = Depends(SessionLocal), current_user: User = Depends(auth.get_current_user)):
@@ -67,11 +68,11 @@ def update_transaction(trx_id: int, update: TransactionUpdate, db: Session = Dep
     trx = db.query(Transaction).filter(Transaction.id == trx_id, Transaction.user_id == current_user.id).first()
     if not trx:
         raise HTTPException(status_code=404, detail="Transaction not found")
-    for k, v in update.dict(exclude_unset=True).items():
+    for k, v in update.model_dump(exclude_unset=True).items():
         setattr(trx, k, v)
     db.commit()
     db.refresh(trx)
-    return trx
+    return TransactionOut.model_validate(trx)
 
 @router.delete("/transactions/{trx_id}", status_code=204, tags=["Transactions"], summary="Delete a transaction")
 def delete_transaction(trx_id: int, db: Session = Depends(SessionLocal), current_user: User = Depends(auth.get_current_user)):
@@ -96,7 +97,7 @@ def dashboard(db: Session = Depends(SessionLocal), current_user: User = Depends(
     return DashboardStats(
         total_income=total_income,
         total_expense=total_expense,
-        recent_transactions=recent
+        recent_transactions=[TransactionOut.model_validate(r) for r in recent]
     )
 
 @router.get("/analytics/budget/", response_model=List[BudgetAnalytics], tags=["Analytics"], summary="Analytics for budgeting per category")

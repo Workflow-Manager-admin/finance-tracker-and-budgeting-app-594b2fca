@@ -2,12 +2,12 @@ import sys
 import os
 
 # Dynamically add the 'src' directory to sys.path relative to this test file,
-# regardless of invocation directory (ensures imports work with pytest and CLI)
+# regardless of invocation directory (works whether pytest is run from root or backend folder)
 current_dir = os.path.dirname(os.path.abspath(__file__))
-src_path = os.path.join(current_dir, "..", "src")
-full_src_path = os.path.abspath(src_path)
-if full_src_path not in sys.path:
-    sys.path.insert(0, full_src_path)
+backend_root = os.path.abspath(os.path.join(current_dir, ".."))
+src_path = os.path.join(backend_root, "src")
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
 
 from fastapi.testclient import TestClient
 import random

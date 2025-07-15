@@ -1,7 +1,25 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
-app = FastAPI()
+from . import database
+from .routes import router as api_router
+
+load_dotenv()
+
+openapi_tags = [
+    {"name": "Authentication", "description": "User registration/login for authentication"},
+    {"name": "Transactions", "description": "CRUD operations for user transactions"},
+    {"name": "Dashboard", "description": "User statistics and recent activity summary"},
+    {"name": "Analytics", "description": "Budget visualization and spending category breakdown"},
+]
+
+app = FastAPI(
+    title="Finance Tracker API",
+    description="API for personal finance tracking, budgeting, transactions, and user authentication.",
+    version="1.0.0",
+    openapi_tags=openapi_tags
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -11,6 +29,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
+@app.on_event("startup")
+def on_startup():
+    database.create_db_and_tables()
+
+@app.get("/", tags=["Dashboard"])
 def health_check():
+    """Health check endpoint."""
     return {"message": "Healthy"}
+
+app.include_router(api_router, prefix="", tags=["API"])

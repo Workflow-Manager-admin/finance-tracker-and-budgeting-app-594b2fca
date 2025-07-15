@@ -1,14 +1,21 @@
 import sys
-import os
 
-# Dynamically add the 'src' directory to sys.path relative to this test file,
-# regardless of invocation directory (works whether pytest is run from root or backend folder)
-current_dir = os.path.dirname(os.path.abspath(__file__))
-# Up two levels from this test file to reach the project root, then add src to sys.path.
-project_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
-src_path = os.path.join(project_root, "finance_tracker_backend", "src")
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
+# Robustly add the backend's "src" directory to sys.path so imports always work,
+# regardless of run location (project root, backend, or elsewhere).
+import pathlib
+current_dir = pathlib.Path(__file__).resolve().parent
+possible_src = [
+    # Project root execution: ./finance_tracker_backend/src
+    current_dir.parent / "src",
+    # One level deeper: ../../finance_tracker_backend/src
+    current_dir.parent.parent / "finance_tracker_backend" / "src",
+    # CI or IDE may have other layouts: walk upwards and check
+]
+# Try each possible src path and insert if not already present
+for src_candidate in possible_src:
+    if src_candidate.is_dir() and str(src_candidate) not in sys.path:
+        sys.path.insert(0, str(src_candidate))
+        break
 
 from fastapi.testclient import TestClient
 import random

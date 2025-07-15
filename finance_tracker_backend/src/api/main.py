@@ -39,3 +39,18 @@ def health_check():
     return {"message": "Healthy"}
 
 app.include_router(api_router, prefix="", tags=["API"])
+
+# PUBLIC_INTERFACE
+if __name__ == "__main__":
+    """
+    Entrypoint for running the FastAPI app with Uvicorn.
+    Usage: python -m src.api.main
+    Or: uvicorn src.api.main:app --host 0.0.0.0 --port 3001 --reload
+    """
+    import uvicorn
+    uvicorn.run(
+        "src.api.main:app",
+        host="0.0.0.0",
+        port=3001,
+        reload=True
+    )

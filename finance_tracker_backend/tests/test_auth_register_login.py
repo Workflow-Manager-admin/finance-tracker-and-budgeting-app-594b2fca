@@ -1,8 +1,10 @@
 import sys
 import os
 
-# Make 'src' importable as a top-level package for this test run
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
+# Ensure 'src' is importable regardless of invocation directory:
+src_abspath = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+if src_abspath not in sys.path:
+    sys.path.insert(0, src_abspath)
 
 from fastapi.testclient import TestClient
 import random
